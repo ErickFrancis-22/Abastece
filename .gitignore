@@ -1,0 +1,37 @@
+﻿# Configuración local de los IDE
+.idea/
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# Compilación de .NET
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# Resultados de pruebas y cobertura
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Logs
+logs/
+*.log
+
+# Variables de entorno y configuración privada
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+
+# Dependencias y compilación del frontend
+node_modules/
+dist/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
