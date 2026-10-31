@@ -206,4 +206,4 @@ Estas capacidades forman parte de las siguientes etapas del proyecto.
 - [ ] Día 4: productos y categorías.
 - [ ] Día 5: proveedores.
 - [ ] Día 6: autenticación y autorización.
-- [ ] Día 7: integración y cierre.
+- [ ] Día 7: integración y cierre. 

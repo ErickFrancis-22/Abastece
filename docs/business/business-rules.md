@@ -57,8 +57,9 @@ operaciones realizadas por usuarios y por el agente de IA.
 - RN-024: Registrar un conteo no modifica las existencias.
 - RN-025: La diferencia se calcula como cantidad física menos
   existencia registrada de referencia.
-- RN-026: Una diferencia puede originar una solicitud de ajuste
-  que debe incluir motivo y referencia al conteo.
+- RN-026: Una solicitud de ajuste puede originarse en una diferencia
+  de conteo físico o en un error de registro. Debe incluir un motivo
+  y la referencia al conteo o movimiento que la justifica.
 - RN-027: Solo un ajuste aprobado por el gerente puede generar
   el movimiento que corrige las existencias.
 - RN-028: Un ajuste aprobado se aplica una sola vez.
@@ -70,10 +71,12 @@ operaciones realizadas por usuarios y por el agente de IA.
 
 - RN-030: Una solicitud puede ser creada por un usuario autorizado
   o por el agente.
-- RN-031: Toda solicitud debe contener productos, cantidades,
-  proveedor propuesto y justificación.
-- RN-032: Las cantidades deben ser enteras mayores que cero y
-  respetar la compra mínima del proveedor.
+- RN-031: Toda solicitud debe indicar productos, necesidad estimada,
+  cantidad propuesta para comprar, proveedor propuesto, costo estimado
+  y justificación. Debe señalar cualquier excedente sobre la necesidad.
+- RN-032: La necesidad estimada y la cantidad propuesta deben ser
+  enteros mayores que cero. La cantidad propuesta para comprar debe
+  respetar el mínimo del proveedor; la necesidad estimada puede ser menor.
 - RN-033: Una solicitud pendiente no modifica las existencias
   ni las cantidades pendientes de recibir.
 - RN-034: El gerente puede aprobar o rechazar una solicitud pendiente.
@@ -151,3 +154,183 @@ operaciones realizadas por usuarios y por el agente de IA.
 - RN-063: Las ejecuciones del agente deben registrar herramientas
   solicitadas, resultados y errores, sin almacenar contraseñas
   ni tokens de acceso.
+- RN-064: Crear una solicitud de reposición no autoriza una compra,
+  no emite una orden y no modifica las existencias.
+- RN-065: El agente no debe aumentar silenciosamente una cantidad para
+  cumplir el mínimo del proveedor. Debe mostrar el excedente, su costo
+  y la justificación para que el gerente evalúe la propuesta.
+- RN-066: El detalle de una solicitud conserva el costo unitario,
+  plazo de entrega y cantidad mínima utilizados al preparar la propuesta.
+  Los cambios posteriores del catálogo no sobrescriben esos valores.
+- RN-067: Antes de emitir una orden, el sistema compara las condiciones
+  actuales registradas con las de la solicitud aprobada. Si difieren,
+  bloquea la emisión y exige una nueva revisión.
+- RN-068: Una solicitud aprobada que requiere cambios se conserva
+  como antecedente y se cancela antes de emitir una orden. Se crea
+  una nueva solicitud vinculada como reemplazo, que requiere aprobación.
+- RN-069: La orden conserva las condiciones acordadas al emitirla.
+  Los cambios posteriores del catálogo no modifican la orden.
+- RN-070: Los estados de una solicitud son Pendiente, Aprobada,
+  Rechazada, Cancelada y Convertida en orden.
+- RN-071: Una solicitud se crea en estado Pendiente. Su contenido
+  no se edita después de presentarla; cualquier cambio requiere
+  cancelarla y crear una nueva.
+- RN-072: Solo el gerente puede aprobar o rechazar una solicitud
+  pendiente. Cada decisión queda asociada a esa solicitud concreta
+  y no se transfiere a sus reemplazos.
+- RN-073: Una solicitud pendiente o aprobada puede cancelarse,
+  antes de generar una orden, por un usuario con rol de encargado
+  de inventario o gerente. Debe registrarse el motivo.
+- RN-074: El agente no puede cancelar solicitudes. Puede señalar
+  que necesitan revisión y preparar una propuesta de reemplazo,
+  cuya presentación requiere que la anterior haya sido cancelada.
+- RN-075: Una solicitud pasa a Convertida en orden únicamente
+  cuando su orden se emite correctamente. Ambos cambios deben
+  completarse en una misma transacción.
+- RN-076: Las solicitudes rechazadas, canceladas o convertidas
+  en orden no pueden reabrirse.
+- RN-077: En la primera versión, generar y emitir una orden constituye
+  una sola operación, autorizada al gerente y basada en una solicitud
+  aprobada cuyas condiciones hayan sido verificadas.
+- RN-078: Los estados de una orden son Emitida, Parcialmente recibida,
+  Completada, Cancelada y Cerrada con recepción parcial.
+- RN-079: Una orden puede tener varias recepciones. Cada recepción
+  pertenece a una sola orden y conserva su fecha y responsable.
+- RN-080: Una orden queda Completada cuando toda la cantidad ordenada
+  ha sido recibida, sin cantidades canceladas.
+- RN-081: Una orden queda Cancelada si se cancela toda su cantidad
+  sin haber recibido mercancía.
+- RN-082: Una orden queda Cerrada con recepción parcial cuando
+  tiene mercancía recibida y cantidades canceladas, sin saldo pendiente.
+- RN-083: Una orden completada, cancelada o cerrada con recepción
+  parcial no admite nuevas recepciones.
+- RN-084: Cada operación de registro de recepción debe incluir una
+  clave de idempotencia única, que se reutiliza en sus reintentos.
+- RN-085: Si una recepción ya fue procesada con esa clave y el mismo
+  contenido, el sistema devuelve el resultado existente sin crear
+  otra recepción ni nuevos movimientos.
+- RN-086: Si una clave ya utilizada se presenta con contenido diferente,
+  el sistema rechaza la operación por conflicto.
+- RN-087: La unicidad de la clave debe protegerse en la base de datos,
+  incluso cuando las peticiones llegan simultáneamente.
+- RN-088: Si una recepción supera la cantidad pendiente actual de
+  cualquier producto, el sistema rechaza la operación completa
+  e informa el producto y su cantidad máxima permitida.
+- RN-089: El sistema no reduce automáticamente las cantidades
+  declaradas por el encargado para ajustarlas al saldo pendiente.
+- RN-090: La validación y actualización de las cantidades pendientes
+  deben protegerse contra operaciones concurrentes.
+- RN-091: Una recepción rechazada no genera movimientos ni modifica
+  existencias o cantidades pendientes. Si se corrige su contenido,
+  debe enviarse como una nueva operación con otra clave de idempotencia.
+- RN-092: Una salida debe contener al menos un producto y cantidades
+  enteras mayores que cero. Un producto no puede repetirse en el detalle.
+- RN-093: Una salida solo puede consumir existencias registradas.
+  Las cantidades pendientes de recibir no están disponibles para salir.
+- RN-094: Si cualquier producto tiene existencias insuficientes,
+  se rechaza la salida completa y se informa la cantidad disponible.
+  El sistema no reduce automáticamente las cantidades solicitadas.
+- RN-095: La salida, sus detalles, los movimientos y la actualización
+  de saldos se confirman en una misma transacción, con protección
+  frente a operaciones concurrentes.
+- RN-096: Las salidas utilizan una clave de idempotencia para evitar
+  registros duplicados. Un reintento con la misma clave y contenido
+  devuelve el resultado existente; con contenido distinto se rechaza.
+- RN-097: Toda salida requiere un motivo y puede incluir una referencia
+  externa, como el número de un comprobante de venta.
+- RN-098: Una corrección de un movimiento confirmado requiere una
+  solicitud de ajuste y aprobación del gerente. El registro original
+  se conserva sin modificaciones.
+- RN-099: Al aprobar la corrección, el sistema genera un movimiento
+  compensatorio vinculado al original y al ajuste autorizado.
+  La aprobación y su aplicación se completan en una misma transacción.
+- RN-100: La corrección debe considerar compensaciones anteriores
+  para impedir que se reviertan más unidades de las registradas
+  en el movimiento original.
+- RN-101: En la primera versión, la corrección directa de errores
+  de cantidad se limita a salidas de inventario. Las correcciones
+  de recepciones y sus efectos sobre órdenes de compra quedan
+  fuera del alcance inicial.
+- RN-102: Los estados de un ajuste son Pendiente, Aplicado,
+  Rechazado y Cancelado. Se crea en estado Pendiente.
+- RN-103: Cada ajuste corresponde a un producto y debe referenciar
+  exactamente un origen: un conteo físico o un movimiento por corregir.
+- RN-104: La diferencia solicitada no puede ser cero.
+- RN-105: Aprobar un ajuste y aplicarlo constituye una sola transacción.
+  Si falla alguna validación o escritura, no se confirma ningún cambio
+  y el ajuste permanece pendiente.
+- RN-106: Antes de aplicar un ajuste se verifican nuevamente sus
+  condiciones, las correcciones anteriores y las existencias actuales.
+  La aprobación del gerente no permite omitir estas validaciones.
+- RN-107: Los ajustes aplicados, rechazados o cancelados conservan
+  su historial y no pueden editarse ni reabrirse.
+- RN-108: Los estados de un conteo físico son Abierto, Confirmado
+  y Cancelado.
+- RN-109: Solo puede existir un conteo abierto por producto.
+  Al abrirlo, el sistema guarda la existencia registrada de referencia.
+- RN-110: Mientras exista un conteo abierto, el sistema bloquea
+  entradas, salidas y ajustes del producto. La apertura del conteo
+  y las operaciones de inventario deben coordinarse para evitar
+  conflictos concurrentes.
+- RN-111: Confirmar un conteo guarda la cantidad observada,
+  calcula la diferencia y libera el bloqueo en una misma transacción.
+  No modifica las existencias.
+- RN-112: El encargado que abrió el conteo o un gerente puede
+  cancelarlo. La cancelación requiere un motivo, libera el bloqueo
+  y conserva el historial.
+- RN-113: Un conteo confirmado o cancelado no puede editarse
+  ni reabrirse. Una nueva verificación requiere otro conteo.
+- RN-114: Las recepciones tienen estados Pendiente de confirmación,
+  Confirmada y Cancelada. Registrar una llegada no modifica existencias
+  ni reduce las cantidades pendientes de recibir de la orden.
+- RN-115: La mercancía de una recepción pendiente debe mantenerse
+  físicamente separada de las existencias disponibles y de cualquier
+  producto que se esté contando.
+- RN-116: Confirmar una recepción requiere verificar sus cantidades,
+  el saldo pendiente actual de la orden y la ausencia de conteos
+  abiertos para sus productos. Solo entonces se generan movimientos
+  y se actualiza la orden, en una misma transacción.
+- RN-117: Una recepción pendiente no garantiza ni reserva el saldo
+  pendiente de la orden. Sus condiciones se validan nuevamente
+  al confirmarla.
+- RN-118: Una recepción pendiente puede cancelarse por un encargado
+  o gerente, indicando el motivo y sin afectar existencias.
+  Una recepción confirmada no puede cancelarse mediante este flujo.
+- RN-119: Cada producto comienza con saldo cero y estado de inventario
+  Pendiente de apertura. No admite movimientos operativos hasta
+  completar su apertura.
+- RN-120: El encargado solicita la apertura indicando la cantidad física
+  inicial, fecha del conteo y justificación. La cantidad debe ser
+  un entero no negativo.
+- RN-121: Solo el gerente puede aprobar o rechazar una apertura.
+  Antes de aprobar debe verificarse que el producto siga pendiente
+  de apertura y no tenga movimientos.
+- RN-122: Aprobar la apertura, registrar el saldo inicial y habilitar
+  el inventario del producto constituye una sola transacción.
+  Si la cantidad es cero, se conserva la aprobación sin generar
+  un movimiento de cantidad cero.
+- RN-123: Cada producto puede completar su apertura una sola vez.
+  Las modificaciones posteriores requieren operaciones de inventario
+  autorizadas.
+- RN-124: Una apertura pendiente no puede ser aprobada por el agente.
+  La mercancía debe permanecer sin movimientos físicos durante
+  su conteo y hasta completar o cancelar el proceso.
+- RN-125: Cada producto tiene un nivel mínimo y un nivel objetivo.
+  El mínimo debe ser no negativo y el objetivo debe ser mayor
+  que el mínimo.
+- RN-126: Para productos con inventario habilitado, se genera una alerta
+  cuando la existencia registrada es igual o inferior al nivel mínimo.
+- RN-127: Cuando no existen reposiciones abiertas, la necesidad estimada
+  se calcula como el nivel objetivo menos la existencia registrada,
+  con un límite inferior de cero.
+- RN-128: La cantidad propuesta debe cubrir la necesidad estimada
+  y respetar la compra mínima del proveedor. Cualquier excedente
+  debe mostrarse con su justificación y costo.
+- RN-129: La compra mínima no implica que la cantidad deba ser
+  un múltiplo de ese valor. Las restricciones por múltiplos de empaque
+  quedan fuera del alcance inicial.
+- RN-130: Los cálculos de cantidades y costos se realizan mediante
+  reglas de la aplicación. El agente puede consultar sus resultados,
+  pero no omitir ni modificar esas reglas.
+- RN-131: La primera versión utiliza niveles configurados de reposición.
+  No implementa pronósticos de demanda ni cálculos de días de cobertura.

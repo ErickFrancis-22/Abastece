@@ -83,6 +83,8 @@ los roles asignados.
 - Registro de conteos físicos con fecha y responsable.
 - Solicitud y aprobación de ajustes por diferencias.
 - Prevención de existencias negativas.
+- Apertura de inventario por producto, con aprobación del gerente.
+- Bloqueo temporal de movimientos por producto durante conteos abiertos.
 
 ### Compras y recepción
 
@@ -92,6 +94,8 @@ los roles asignados.
 - Registro de recepciones parciales o completas.
 - Consulta de cantidades pendientes de recibir.
 - Cancelación del saldo pendiente de una orden, con motivo registrado.
+- Registro de llegadas pendientes de confirmación.
+- Confirmación de recepción separada de la llegada física.
 
 ### Centro de operaciones
 
@@ -175,6 +179,10 @@ operaciones realizadas por personas.
 - Control por lotes, números de serie o fechas de vencimiento.
 - Pronósticos avanzados de demanda.
 - Coordinación de múltiples agentes.
+- Pronósticos de demanda y estimación de días de cobertura.
+- Restricciones de compra por múltiplos de empaque.
+- Correcciones de recepciones confirmadas.
+- Importación masiva de inventario inicial.
 
 Las salidas por ventas se registrarán como movimientos de inventario,
 sin implementar un sistema completo de ventas.
