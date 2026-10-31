@@ -348,3 +348,12 @@ operaciones realizadas por usuarios y por el agente de IA.
 - RN-137: No se permite desactivar al último administrador activo
   ni retirar su rol de Administrador. Esta validación debe protegerse
   frente a operaciones concurrentes.
+- RN-138: Toda solicitud identifica a su creador mediante una identidad
+  de actor. La revisión identifica al usuario humano que tomó la decisión.
+- RN-139: Los permisos se verifican al ejecutar la acción. Retirar
+  posteriormente un rol no elimina ni invalida decisiones anteriores
+  realizadas con autorización.
+- RN-140: Cada usuario y cada agente tienen una identidad de actor
+  propia y exclusiva. El tipo de actor debe corresponder a su perfil.
+- RN-141: Las identidades con historial no se eliminan físicamente.
+  Los usuarios se desactivan y los agentes se deshabilitan.
