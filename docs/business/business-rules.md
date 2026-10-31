@@ -341,3 +341,10 @@ operaciones realizadas por usuarios y por el agente de IA.
 - RN-134: Las operaciones protegidas verifican que el usuario
   esté activo y tenga los permisos vigentes requeridos.
   Un JWT anterior no conserva permisos que ya fueron retirados.
+- RN-135: El rol Administrador no concede automáticamente permisos
+  de Gerente ni de Encargado de inventario.
+- RN-136: Un administrador no puede modificar sus propias asignaciones
+  de roles mediante la API. Otro administrador debe realizar el cambio.
+- RN-137: No se permite desactivar al último administrador activo
+  ni retirar su rol de Administrador. Esta validación debe protegerse
+  frente a operaciones concurrentes.
