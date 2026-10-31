@@ -334,3 +334,10 @@ operaciones realizadas por usuarios y por el agente de IA.
   pero no omitir ni modificar esas reglas.
 - RN-131: La primera versión utiliza niveles configurados de reposición.
   No implementa pronósticos de demanda ni cálculos de días de cobertura.
+- RN-132: Una asignación de rol se identifica por la combinación
+  de usuario y rol. No se permiten asignaciones duplicadas.
+- RN-133: Retirar un rol elimina la asignación, pero conserva
+  al usuario y su historial. El cambio debe quedar auditado.
+- RN-134: Las operaciones protegidas verifican que el usuario
+  esté activo y tenga los permisos vigentes requeridos.
+  Un JWT anterior no conserva permisos que ya fueron retirados.
