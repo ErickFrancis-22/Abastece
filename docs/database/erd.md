@@ -216,3 +216,60 @@ para simplificar la vista.
 
 Solo puede existir un conteo abierto por producto.
 Los campos completos y restricciones están en el diccionario.
+
+## 6. Ajustes de inventario
+
+```mermaid
+erDiagram
+    Products ||--o{ InventoryAdjustments : tiene
+    StockCounts o|--o{ InventoryAdjustments : fundamenta
+    InventoryMovements o|--o{ InventoryAdjustments : origina
+    Users ||--o{ InventoryAdjustments : solicita
+
+    Products {
+        int Id PK
+    }
+
+    StockCounts {
+        int Id PK
+        int ProductId FK
+    }
+
+    InventoryMovements {
+        int Id PK
+        int ProductId FK
+    }
+
+    Users {
+        int Id PK
+    }
+
+    InventoryAdjustments {
+        int Id PK
+        int ProductId FK
+        int StockCountId FK
+        int OriginalMovementId FK
+        int QuantityDelta
+        nvarchar Status
+        int RequestedByUserId FK
+        int ReviewedByUserId FK
+        int CancelledByUserId FK
+        rowversion RowVersion
+    }
+```
+
+### Restricciones adicionales
+
+- Cada ajuste referencia exactamente un origen: conteo o movimiento.
+- El origen debe corresponder al mismo producto del ajuste.
+- Un conteo puede tener solicitudes históricas rechazadas o canceladas,
+  pero como máximo una pendiente y una aplicada.
+- Un movimiento puede tener varias correcciones, siempre respetando
+  la cantidad máxima que puede compensarse.
+- Las relaciones opcionales del dibujo no expresan por sí solas
+  la exclusividad entre ambos orígenes.
+- Solo se dibuja la relación del solicitante para simplificar.
+  Revisor y responsable de cancelación también referencian Users.Id.
+- InventoryMovements se presenta como referencia parcial;
+  su estructura completa se documentará posteriormente.
+```
