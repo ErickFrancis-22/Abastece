@@ -272,7 +272,6 @@ erDiagram
   Revisor y responsable de cancelación también referencian Users.Id.
 - InventoryMovements se presenta como referencia parcial;
   su estructura completa se documentará posteriormente.
-```
 
 ## 7. Movimientos de inventario
 
