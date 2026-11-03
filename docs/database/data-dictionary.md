@@ -105,3 +105,107 @@ Las solicitudes y órdenes conservan sus propias condiciones históricas.
 Los cambios relevantes del catálogo también se registrarán en auditoría.
 
 Actualizar UnitCost no modifica solicitudes ni órdenes anteriores.
+
+## 5. Actors
+
+Identifica a las personas y agentes responsables de acciones.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ActorType | nvarchar(20) | No | User o Agent. |
+| DisplayName | nvarchar(150) | No | Nombre visible, no vacío. |
+| CreatedAt | datetime2 | No | Fecha de creación en UTC. |
+
+Cada actor corresponde exclusivamente a un usuario o a un agente,
+según ActorType.
+
+La identidad permite atribuir acciones, pero no concede permisos.
+
+Los actores con historial no se eliminan físicamente.
+
+## 6. Users
+
+Contiene los datos de acceso de las personas.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ActorId | int | No | FK hacia Actors.Id; único. |
+| Email | nvarchar(254) | No | Correo de acceso. |
+| NormalizedEmail | nvarchar(254) | No | Correo normalizado; único. |
+| PasswordHash | nvarchar(max) | No | Hash generado por el mecanismo de autenticación. |
+| IsActive | bit | No | Permite o bloquea el acceso. |
+| CreatedAt | datetime2 | No | Fecha de creación en UTC. |
+
+### Restricciones
+
+- El actor relacionado debe tener ActorType = User.
+- El usuario y su actor se crean en una misma transacción.
+- La normalización del correo se realiza mediante una política
+  consistente de la aplicación.
+- La contraseña original no se almacena ni se registra en logs.
+- Desactivar al usuario no elimina sus acciones anteriores.
+- Los permisos se obtienen de sus asignaciones de roles vigentes.
+
+## 7. Roles
+
+Define los roles disponibles en la primera versión.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| Name | nvarchar(50) | No | Nombre único. |
+
+Roles iniciales:
+
+- Administrator: usuarios, asignaciones y configuración.
+- Manager: aprobación de compras y ajustes; supervisión.
+- InventoryOperator: catálogos y operación de inventario.
+
+La interfaz puede mostrar los nombres en español.
+
+Los roles son predefinidos. La primera versión permite asignarlos
+y retirarlos, pero no crear roles ni editar sus permisos.
+
+Administrator no incluye automáticamente los otros roles.
+
+## 8. UserRoles
+
+Asigna roles a usuarios.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| UserId | int | No | FK hacia Users.Id; parte de la PK. |
+| RoleId | int | No | FK hacia Roles.Id; parte de la PK. |
+
+### Restricciones
+
+- Clave primaria compuesta: UserId + RoleId.
+- Un usuario puede tener varios roles.
+- Un rol puede estar asignado a varios usuarios.
+- Retirar una asignación no elimina al usuario ni al rol.
+- Las asignaciones y retiradas se registran en auditoría.
+- Un administrador no puede modificar sus propias asignaciones.
+- No se puede retirar el último administrador activo.
+
+## 9. AgentProfiles
+
+Representa la configuración básica de una identidad de agente.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ActorId | int | No | FK hacia Actors.Id; único. |
+| IsEnabled | bit | No | Permite o impide nuevas acciones del agente. |
+
+### Restricciones
+
+- El actor relacionado debe tener ActorType = Agent.
+- El agente no tiene correo ni contraseña de usuario humano.
+- Sus herramientas y permisos se controlan desde la aplicación.
+- Deshabilitarlo conserva sus casos, solicitudes y ejecuciones.
+- Su habilitación y permisos se verifican antes de cada herramienta.
+
+La configuración del modelo y sus credenciales se gestionan
+por separado; no se guardan como datos públicos del perfil.
