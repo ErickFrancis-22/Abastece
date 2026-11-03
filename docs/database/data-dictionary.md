@@ -336,23 +336,23 @@ Cada solicitud corresponde a un producto y se origina en un conteo
 confirmado o en un error de una salida registrada.
 
 | Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
-|---|---|---|---|
-| Id | int | No | PK, IDENTITY. |
-| ProductId | int | No | FK hacia Products.Id. |
-| StockCountId | int | Sí | FK hacia StockCounts.Id. |
-| OriginalMovementId | int | Sí | FK hacia InventoryMovements.Id. |
-| QuantityDelta | int | No | Diferencia solicitada, positiva o negativa; distinta de cero. |
-| Reason | nvarchar(500) | No | Justificación obligatoria. |
-| Status | nvarchar(20) | No | Pending, Applied, Rejected o Cancelled. |
-| RequestedByUserId | int | No | FK hacia Users.Id. |
-| RequestedAt | datetime2 | No | Fecha de solicitud en UTC. |
-| ReviewedByUserId | int | Sí | FK hacia Users.Id. |
-| ReviewedAt | datetime2 | Sí | Fecha de aprobación o rechazo. |
-| ReviewComment | nvarchar(500) | Sí | Observación; obligatoria al rechazar. |
-| CancelledByUserId | int | Sí | FK hacia Users.Id. |
-| CancelledAt | datetime2 | Sí | Fecha de cancelación. |
-| CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
-| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+|---|----------------|---|---|
+| Id | int            | No | PK, IDENTITY. |
+| ProductId | int            | No | FK hacia Products.Id. |
+| StockCountId | int            | Sí | FK hacia StockCounts.Id. |
+| OriginalMovementId | bigint         | Sí | FK hacia InventoryMovements.Id. |
+| QuantityDelta | int            | No | Diferencia solicitada, positiva o negativa; distinta de cero. |
+| Reason | nvarchar(500)  | No | Justificación obligatoria. |
+| Status | nvarchar(20)   | No | Pending, Applied, Rejected o Cancelled. |
+| RequestedByUserId | int            | No | FK hacia Users.Id. |
+| RequestedAt | datetime2      | No | Fecha de solicitud en UTC. |
+| ReviewedByUserId | int            | Sí | FK hacia Users.Id. |
+| ReviewedAt | datetime2      | Sí | Fecha de aprobación o rechazo. |
+| ReviewComment | nvarchar(500)  | Sí | Observación; obligatoria al rechazar. |
+| CancelledByUserId | int            | Sí | FK hacia Users.Id. |
+| CancelledAt | datetime2      | Sí | Fecha de cancelación. |
+| CancellationReason | nvarchar(500)  | Sí | Obligatorio al cancelar. |
+| RowVersion | rowversion     | No | Control de modificaciones concurrentes. |
 
 ### Restricciones
 

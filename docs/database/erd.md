@@ -273,3 +273,66 @@ erDiagram
 - InventoryMovements se presenta como referencia parcial;
   su estructura completa se documentará posteriormente.
 ```
+
+## 7. Movimientos de inventario
+
+```mermaid
+erDiagram
+    Products ||--o{ InventoryMovements : registra
+    Actors ||--o{ InventoryMovements : realiza
+    InventoryOpenings o|--o| InventoryMovements : origina
+    InventoryAdjustments o|--o| InventoryMovements : origina
+
+    Products {
+        int Id PK
+    }
+
+    Actors {
+        int Id PK
+    }
+
+    InventoryOpenings {
+        int Id PK
+    }
+
+    InventoryAdjustments {
+        int Id PK
+        bigint OriginalMovementId FK
+    }
+
+    InventoryMovements {
+        bigint Id PK
+        int ProductId FK
+        nvarchar MovementType
+        int Quantity
+        datetime2 OccurredAt
+        datetime2 CreatedAt
+        int CreatedByActorId FK
+        int InventoryOpeningId FK
+        int GoodsReceiptDetailId FK
+        int InventoryIssueDetailId FK
+        int InventoryAdjustmentId FK
+        bigint ReversesMovementId FK
+    }
+```
+
+### Restricciones adicionales
+
+- Cada movimiento tiene un producto, un actor y exactamente
+  un documento de origen.
+- Los documentos de origen posibles son apertura, detalle
+  de recepción, detalle de salida o ajuste.
+- Cada documento de origen genera como máximo un movimiento.
+- Una apertura con cero unidades no genera movimiento.
+- Un ajuste aplicado genera exactamente un movimiento.
+- Las relaciones con detalles de recepción y salida se dibujarán
+  al incorporar esas entidades.
+- OriginalMovementId identifica el movimiento que motivó
+  una solicitud de corrección.
+- ReversesMovementId identifica el movimiento compensado
+  por una corrección aplicada.
+- Las referencias al movimiento original y las restricciones
+  entre tipos y orígenes se describen en el diccionario.
+- Para simplificar esta vista, no se dibujan las relaciones
+  al movimiento original.
+```
