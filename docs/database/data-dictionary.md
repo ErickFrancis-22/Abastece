@@ -234,3 +234,43 @@ del inventario de cada producto.
   autorizados y registrados en la misma transacción.
 - Las cantidades pendientes de recibir no forman parte de QuantityOnHand.
 - RowVersion no representa una fecha ni una cantidad de movimientos.
+
+## 11. InventoryOpenings
+
+Registra las solicitudes de apertura de inventario por producto
+y su resolución.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ProductId | int | No | FK hacia Products.Id. |
+| InitialQuantity | int | No | Cantidad física inicial; no negativa. |
+| CountedAt | datetime2 | No | Momento del conteo físico, en UTC. |
+| Reason | nvarchar(500) | No | Justificación de la apertura. |
+| Status | nvarchar(20) | No | Pending, Applied, Rejected o Cancelled. |
+| RequestedByUserId | int | No | FK hacia Users.Id. |
+| RequestedAt | datetime2 | No | Fecha de solicitud, en UTC. |
+| ReviewedByUserId | int | Sí | FK hacia Users.Id; gerente que resolvió. |
+| ReviewedAt | datetime2 | Sí | Fecha de aprobación o rechazo. |
+| ReviewComment | nvarchar(500) | Sí | Observación; obligatoria al rechazar. |
+| CancelledByUserId | int | Sí | FK hacia Users.Id; responsable de cancelar. |
+| CancelledAt | datetime2 | Sí | Fecha de cancelación. |
+| CancellationReason | nvarchar(500) | Sí | Motivo obligatorio al cancelar. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- Solo se solicita para productos pendientes de apertura.
+- Solo puede existir una solicitud Pending por producto.
+- Solo puede existir una apertura Applied por producto.
+- Una solicitud rechazada o cancelada se conserva; puede presentarse
+  otra mientras el producto siga pendiente de apertura.
+- El encargado solicita; el gerente aprueba o rechaza.
+- El solicitante o un gerente pueden cancelar una solicitud pendiente.
+- Las solicitudes presentadas no se editan; se cancelan y reemplazan.
+- Aprobar registra el movimiento inicial, actualiza el saldo,
+  habilita el inventario y cambia la solicitud a Applied
+  en una misma transacción.
+- Si InitialQuantity es cero, se habilita el inventario sin generar
+  un movimiento de cantidad cero.
+- Los registros resueltos no pueden reabrirse.
