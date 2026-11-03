@@ -428,3 +428,57 @@ Cada movimiento corresponde a un producto.
 - CreatedByActorId identifica a la persona o agente que inició la
   operación autorizada; ejecutar código automáticamente no convierte
   al agente en responsable de todas las operaciones.
+
+## 15. InventoryIssues
+
+Registra una salida confirmada de mercancía.
+En la primera versión representa salidas por venta,
+sin implementar un punto de venta completo.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| IdempotencyKey | uniqueidentifier | No | Clave única de la operación. |
+| RequestHash | char(64) | No | Huella SHA-256 del contenido normalizado de la petición. |
+| Reason | nvarchar(500) | No | Motivo obligatorio. |
+| ExternalReference | nvarchar(100) | Sí | Referencia a un comprobante externo. |
+| OccurredAt | datetime2 | No | Momento de la salida, en UTC. |
+| CreatedAt | datetime2 | No | Momento del registro, en UTC. |
+| CreatedByUserId | int | No | FK hacia Users.Id. |
+
+### Restricciones
+
+- La salida se registra y confirma en una sola operación.
+- No existen borradores de salida en esta versión.
+- Debe contener al menos un detalle.
+- Todos los productos deben estar activos, con inventario abierto,
+  sin conteos abiertos y con existencias suficientes.
+- Si falla un detalle, se rechaza toda la salida.
+- Cabecera, detalles, movimientos y saldos se guardan
+  en una misma transacción.
+- Una salida confirmada no se edita ni elimina.
+- Las correcciones requieren un ajuste aprobado.
+- La misma clave con el mismo contenido devuelve el resultado
+  existente, sin duplicar movimientos.
+- La misma clave con contenido diferente se rechaza por conflicto.
+- La autorización se comprueba también en los reintentos.
+- RequestHash lo calcula el servidor; no se confía en una huella
+  enviada por el cliente.
+
+## 16. InventoryIssueDetails
+
+Identifica los productos y cantidades de una salida.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| InventoryIssueId | int | No | FK hacia InventoryIssues.Id. |
+| ProductId | int | No | FK hacia Products.Id. |
+| Quantity | int | No | Cantidad entera mayor que cero. |
+
+### Restricciones
+
+- La combinación InventoryIssueId + ProductId es única.
+- Cada detalle genera exactamente un movimiento SaleIssue.
+- El movimiento conserva el mismo producto y cantidad del detalle.
+- Las compensaciones posteriores no modifican el detalle original.
