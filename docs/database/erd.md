@@ -178,3 +178,41 @@ erDiagram
 - Para simplificar el dibujo, se muestra únicamente la relación
   del solicitante con Users.
 - Los campos completos se describen en data-dictionary.md.
+
+## 5. Conteos físicos
+
+```mermaid
+erDiagram
+    Products ||--o{ StockCounts : tiene
+    Users ||--o{ StockCounts : abre
+
+    Products {
+        int Id PK
+    }
+
+    Users {
+        int Id PK
+    }
+
+    StockCounts {
+        int Id PK
+        int ProductId FK
+        int ReferenceQuantity
+        int CountedQuantity
+        nvarchar Status
+        int OpenedByUserId FK
+        datetime2 OpenedAt
+        int ConfirmedByUserId FK
+        datetime2 ConfirmedAt
+        int CancelledByUserId FK
+        datetime2 CancelledAt
+        rowversion RowVersion
+    }
+```
+
+Los responsables de apertura, confirmación y cancelación
+referencian Users.Id. Solo se dibuja la relación de apertura
+para simplificar la vista.
+
+Solo puede existir un conteo abierto por producto.
+Los campos completos y restricciones están en el diccionario.
