@@ -127,3 +127,54 @@ erDiagram
 - Un usuario puede tener cero o varios roles.
 - Tener una cuenta sin roles no concede permisos de negocio.
 - Los roles son predefinidos en la primera versión.
+
+## 4. Saldo y apertura de inventario
+
+```mermaid
+erDiagram
+    Products ||--|| InventoryBalances : tiene
+    Products ||--o{ InventoryOpenings : registra
+    Users ||--o{ InventoryOpenings : solicita
+
+    Products {
+        int Id PK
+    }
+
+    InventoryBalances {
+        int ProductId PK, FK
+        int QuantityOnHand
+        nvarchar OpeningStatus
+        rowversion RowVersion
+    }
+
+    InventoryOpenings {
+        int Id PK
+        int ProductId FK
+        int InitialQuantity
+        datetime2 CountedAt
+        nvarchar Status
+        int RequestedByUserId FK
+        int ReviewedByUserId FK
+        int CancelledByUserId FK
+        rowversion RowVersion
+    }
+
+    Users {
+        int Id PK
+    }
+```
+
+### Restricciones adicionales
+
+- Cada producto tiene exactamente una fila de saldo, creada
+  en la misma transacción que el producto.
+- Un producto puede tener varias solicitudes de apertura históricas.
+- Solo puede tener una solicitud pendiente y una apertura aplicada
+  como máximo.
+- RequestedByUserId identifica al solicitante.
+- ReviewedByUserId es opcional mientras no exista una revisión.
+- CancelledByUserId es opcional y solo se informa al cancelar.
+- Los tres campos de responsable referencian Users.Id.
+- Para simplificar el dibujo, se muestra únicamente la relación
+  del solicitante con Users.
+- Los campos completos se describen en data-dictionary.md.
