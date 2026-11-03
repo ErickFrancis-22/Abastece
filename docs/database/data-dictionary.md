@@ -327,3 +327,51 @@ No se almacena como un campo independiente.
 Solo tiene significado para conteos confirmados.
 Una diferencia puede originar una solicitud de ajuste;
 nunca modifica automáticamente el saldo.
+
+## 13. InventoryAdjustments
+
+Registra solicitudes de corrección de existencias y su resolución.
+
+Cada solicitud corresponde a un producto y se origina en un conteo
+confirmado o en un error de una salida registrada.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ProductId | int | No | FK hacia Products.Id. |
+| StockCountId | int | Sí | FK hacia StockCounts.Id. |
+| OriginalMovementId | int | Sí | FK hacia InventoryMovements.Id. |
+| QuantityDelta | int | No | Diferencia solicitada, positiva o negativa; distinta de cero. |
+| Reason | nvarchar(500) | No | Justificación obligatoria. |
+| Status | nvarchar(20) | No | Pending, Applied, Rejected o Cancelled. |
+| RequestedByUserId | int | No | FK hacia Users.Id. |
+| RequestedAt | datetime2 | No | Fecha de solicitud en UTC. |
+| ReviewedByUserId | int | Sí | FK hacia Users.Id. |
+| ReviewedAt | datetime2 | Sí | Fecha de aprobación o rechazo. |
+| ReviewComment | nvarchar(500) | Sí | Observación; obligatoria al rechazar. |
+| CancelledByUserId | int | Sí | FK hacia Users.Id. |
+| CancelledAt | datetime2 | Sí | Fecha de cancelación. |
+| CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- Debe existir exactamente un origen: StockCountId
+  u OriginalMovementId, nunca ambos ni ninguno.
+- El producto del ajuste debe coincidir con el producto del origen.
+- Una solicitud pendiente no modifica existencias.
+- El encargado solicita; el gerente aprueba o rechaza.
+- El solicitante o un gerente pueden cancelar un ajuste pendiente.
+- El contenido presentado no se edita; se cancela y reemplaza.
+- Un ajuste basado en conteo utiliza la diferencia observada.
+- Un conteo no puede generar dos ajustes pendientes ni aplicarse
+  más de una vez.
+- Si hubo movimientos posteriores al conteo, se exige una nueva
+  verificación antes de continuar.
+- Las correcciones de salidas consideran compensaciones anteriores
+  para no devolver más unidades de las registradas originalmente.
+- No se permiten ajustes que dejen existencias negativas.
+- Aprobar, generar el movimiento compensatorio, actualizar el saldo
+  y cambiar el estado a Applied constituye una sola transacción.
+- Si la operación falla, no se confirma ninguno de esos cambios.
+- Los ajustes resueltos se conservan y no pueden reabrirse.
