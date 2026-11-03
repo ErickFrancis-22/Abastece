@@ -274,3 +274,56 @@ y su resolución.
 - Si InitialQuantity es cero, se habilita el inventario sin generar
   un movimiento de cantidad cero.
 - Los registros resueltos no pueden reabrirse.
+
+## 12. StockCounts
+
+Registra conteos físicos de productos cuyo inventario ya está abierto.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ProductId | int | No | FK hacia Products.Id. |
+| ReferenceQuantity | int | No | Existencia registrada al abrir el conteo. |
+| CountedQuantity | int | Sí | Cantidad física observada; no negativa. |
+| Status | nvarchar(20) | No | Open, Confirmed o Cancelled. |
+| OpenedByUserId | int | No | FK hacia Users.Id. |
+| OpenedAt | datetime2 | No | Fecha de apertura en UTC. |
+| ConfirmedByUserId | int | Sí | FK hacia Users.Id. |
+| ConfirmedAt | datetime2 | Sí | Fecha de confirmación en UTC. |
+| CancelledByUserId | int | Sí | FK hacia Users.Id. |
+| CancelledAt | datetime2 | Sí | Fecha de cancelación en UTC. |
+| CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
+| Notes | nvarchar(500) | Sí | Observaciones del conteo. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- El producto debe tener su inventario abierto.
+- Solo puede existir un conteo Open por producto.
+- Abrir el conteo guarda ReferenceQuantity y bloquea las operaciones
+  que modifican existencias del producto.
+- La apertura se coordina con los movimientos concurrentes para
+  obtener una referencia consistente.
+- Mientras está abierto, CountedQuantity permanece NULL.
+- El encargado que abrió el conteo confirma la cantidad observada.
+- Confirmar exige una cantidad entera mayor o igual que cero.
+- Confirmar guarda la cantidad observada, responsable y fecha,
+  y libera el bloqueo en una misma transacción.
+- El encargado que abrió el conteo o un gerente pueden cancelarlo,
+  indicando el motivo y liberando el bloqueo.
+- Confirmar o cancelar no modifica las existencias.
+- Un conteo resuelto no puede editarse ni reabrirse.
+- Si después de confirmarlo hay movimientos, no se permite aplicar
+  un ajuste basado en él sin una nueva verificación.
+
+### Diferencia
+
+La diferencia se calcula como:
+
+CountedQuantity - ReferenceQuantity
+
+No se almacena como un campo independiente.
+
+Solo tiene significado para conteos confirmados.
+Una diferencia puede originar una solicitud de ajuste;
+nunca modifica automáticamente el saldo.
