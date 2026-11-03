@@ -364,8 +364,9 @@ confirmado o en un error de una salida registrada.
 - El solicitante o un gerente pueden cancelar un ajuste pendiente.
 - El contenido presentado no se edita; se cancela y reemplaza.
 - Un ajuste basado en conteo utiliza la diferencia observada.
-- Un conteo no puede generar dos ajustes pendientes ni aplicarse
-  más de una vez.
+- Un conteo puede tener varias solicitudes históricas rechazadas
+  o canceladas, pero solo una pendiente y una aplicada como máximo.
+  Su diferencia no puede aplicarse dos veces.
 - Si hubo movimientos posteriores al conteo, se exige una nueva
   verificación antes de continuar.
 - Las correcciones de salidas consideran compensaciones anteriores
@@ -375,3 +376,55 @@ confirmado o en un error de una salida registrada.
   y cambiar el estado a Applied constituye una sola transacción.
 - Si la operación falla, no se confirma ninguno de esos cambios.
 - Los ajustes resueltos se conservan y no pueden reabrirse.
+
+## 14. InventoryMovements
+
+Conserva el historial de cambios confirmados de existencias.
+Cada movimiento corresponde a un producto.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| ProductId | int | No | FK hacia Products.Id. |
+| MovementType | nvarchar(30) | No | Tipo que determina el origen y sentido del movimiento. |
+| Quantity | int | No | Cantidad entera mayor que cero. |
+| OccurredAt | datetime2 | No | Momento efectivo de la operación, en UTC. |
+| CreatedAt | datetime2 | No | Momento del registro, en UTC. |
+| CreatedByActorId | int | No | FK hacia Actors.Id; responsable de la operación. |
+| Reason | nvarchar(500) | No | Explicación del movimiento. |
+| InventoryOpeningId | int | Sí | FK hacia InventoryOpenings.Id. |
+| GoodsReceiptDetailId | int | Sí | FK hacia GoodsReceiptDetails.Id. |
+| InventoryIssueDetailId | int | Sí | FK hacia InventoryIssueDetails.Id. |
+| InventoryAdjustmentId | int | Sí | FK hacia InventoryAdjustments.Id. |
+| ReversesMovementId | bigint | Sí | FK hacia InventoryMovements.Id, si corrige una salida. |
+
+### Tipos de movimiento
+
+| Tipo | Efecto | Origen |
+|---|---|---|
+| OpeningBalance | Aumenta | Apertura aprobada con cantidad mayor que cero. |
+| PurchaseReceipt | Aumenta | Detalle de recepción confirmada. |
+| SaleIssue | Disminuye | Detalle de salida confirmada. |
+| PositiveAdjustment | Aumenta | Ajuste aprobado por diferencia de conteo. |
+| NegativeAdjustment | Disminuye | Ajuste aprobado por diferencia de conteo. |
+| IssueReversal | Aumenta | Ajuste aprobado que compensa una salida errónea. |
+
+### Restricciones
+
+- Quantity siempre es positiva; MovementType determina el efecto.
+- Debe existir exactamente un documento de origen:
+  apertura, detalle de recepción, detalle de salida o ajuste.
+- El tipo debe corresponder al documento de origen.
+- El producto debe coincidir con el del documento de origen.
+- Cada documento de origen puede generar como máximo un movimiento.
+- IssueReversal requiere InventoryAdjustmentId y ReversesMovementId.
+  Este último es una referencia complementaria al movimiento corregido.
+- En los demás tipos, ReversesMovementId debe ser NULL.
+- Solo se permite compensar movimientos SaleIssue en esta versión.
+- Las compensaciones acumuladas no pueden superar la cantidad original.
+- Los movimientos confirmados no se editan ni eliminan.
+- Registrar un movimiento y actualizar el saldo constituye una
+  misma transacción.
+- CreatedByActorId identifica a la persona o agente que inició la
+  operación autorizada; ejecutar código automáticamente no convierte
+  al agente en responsable de todas las operaciones.
