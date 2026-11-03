@@ -209,3 +209,28 @@ Representa la configuración básica de una identidad de agente.
 
 La configuración del modelo y sus credenciales se gestionan
 por separado; no se guardan como datos públicos del perfil.
+
+## 10. InventoryBalances
+
+Conserva la existencia registrada actual y el estado de apertura
+del inventario de cada producto.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| ProductId | int | No | PK y FK hacia Products.Id. No es IDENTITY. |
+| QuantityOnHand | int | No | Existencia registrada, mayor o igual que cero. |
+| OpeningStatus | nvarchar(20) | No | Pending o Opened. |
+| RowVersion | rowversion | No | Valor generado por SQL Server para detectar cambios concurrentes. |
+
+### Restricciones
+
+- Al crear un producto se crea su saldo en la misma transacción,
+  con cantidad cero y apertura Pending.
+- ProductId como clave primaria impide dos saldos del mismo producto.
+- Mientras la apertura esté pendiente, no se permiten movimientos
+  operativos ni alertas de reposición.
+- La aprobación de la apertura cambia OpeningStatus a Opened.
+- Después de la apertura, el saldo solo cambia mediante movimientos
+  autorizados y registrados en la misma transacción.
+- Las cantidades pendientes de recibir no forman parte de QuantityOnHand.
+- RowVersion no representa una fecha ni una cantidad de movimientos.
