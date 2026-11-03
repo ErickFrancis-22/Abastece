@@ -357,3 +357,16 @@ operaciones realizadas por usuarios y por el agente de IA.
   propia y exclusiva. El tipo de actor debe corresponder a su perfil.
 - RN-141: Las identidades con historial no se eliminan físicamente.
   Los usuarios se desactivan y los agentes se deshabilitan.
+- RN-142: Deshabilitar un agente impide iniciar nuevas ejecuciones
+  y autorizar nuevas llamadas a herramientas. No elimina su historial
+  ni cancela automáticamente las solicitudes que creó.
+- RN-143: Antes de ejecutar cada herramienta se verifica que el agente
+  continúe habilitado y autorizado. Las operaciones ya confirmadas
+  conservan sus efectos.
+- RN-144: Los casos conservan su estado entre ejecuciones. Esperar
+  una aprobación humana no requiere mantener una ejecución activa.
+- RN-145: Cada llamada a herramienta se vincula con una ejecución
+  y registra su resultado, sin exponer secretos.
+- RN-146: La trazabilidad del agente conserva acciones, fuentes
+  y justificaciones verificables; no requiere almacenar razonamientos
+  internos del modelo.
