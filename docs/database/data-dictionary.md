@@ -946,3 +946,87 @@ realizadas en el sistema.
   no sustituye movimientos, solicitudes ni aprobaciones.
 - CorrelationId relaciona eventos; no sustituye una clave
   de idempotencia.
+
+## 29. KnowledgeDocuments
+
+Conserva versiones de documentos utilizados como conocimiento:
+políticas internas y condiciones documentales de proveedores.
+
+Cada fila representa una versión concreta de un documento.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| DocumentKey | uniqueidentifier | No | Identifica el documento entre versiones. |
+| VersionNumber | int | No | Versión entera mayor que cero. |
+| Title | nvarchar(200) | No | Título del documento. |
+| SourceReference | nvarchar(500) | No | Referencia al archivo o fuente conservada. |
+| ContentHash | char(64) | No | Huella del contenido. |
+| Status | nvarchar(20) | No | Processing, Ready, Failed o Retired. |
+| IsCurrent | bit | No | Indica la versión vigente. |
+| UploadedByUserId | int | No | FK hacia Users.Id. |
+| CreatedAt | datetime2 | No | Fecha de incorporación en UTC. |
+| EmbeddingModel | nvarchar(200) | Sí | Modelo utilizado para generar embeddings. |
+| EmbeddingDimensions | int | Sí | Número de componentes del vector. |
+
+### Restricciones
+
+- DocumentKey + VersionNumber es una combinación única.
+- Solo puede existir una versión vigente por DocumentKey.
+- Una versión nueva se prepara antes de sustituir a la vigente.
+- Solo se recuperan fragmentos de versiones Ready y vigentes.
+- El contenido de una versión indexada no se sobrescribe.
+- Las versiones anteriores se conservan para auditoría.
+- Solo el administrador incorpora o retira documentos.
+- El contenido documental no puede otorgar permisos al agente.
+
+## 30. KnowledgeChunks
+
+Conserva los fragmentos de texto y su referencia al índice vectorial.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| KnowledgeDocumentId | int | No | FK hacia KnowledgeDocuments.Id. |
+| ChunkIndex | int | No | Posición del fragmento, desde cero. |
+| Content | nvarchar(max) | No | Texto del fragmento. |
+| SourceLocator | nvarchar(200) | Sí | Página o sección de origen. |
+| VectorPointId | uniqueidentifier | No | Identificador único en el índice vectorial. |
+
+### Restricciones
+
+- KnowledgeDocumentId + ChunkIndex es una combinación única.
+- El texto del fragmento queda asociado a una versión inmutable.
+- Los embeddings se almacenan en el índice vectorial.
+- SQL Server conserva texto, metadatos y referencias.
+- Una versión solo pasa a Ready cuando todos sus fragmentos
+  están indexados correctamente.
+- Las consultas usan embeddings compatibles con el modelo
+  y dimensiones del índice.
+- Los resultados vectoriales se verifican contra el estado
+  vigente del documento antes de entregarlos al agente.
+- Los fragmentos utilizados como evidencia histórica se conservan.
+
+## 31. AgentEvidence
+
+Relaciona las ejecuciones con los fragmentos recuperados
+y distingue cuáles se citaron en su resultado.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| AgentRunId | bigint | No | FK hacia AgentRuns.Id. |
+| KnowledgeChunkId | bigint | No | FK hacia KnowledgeChunks.Id. |
+| RetrievedAt | datetime2 | No | Fecha de recuperación en UTC. |
+| WasCited | bit | No | Indica si se citó como respaldo del resultado. |
+
+### Restricciones
+
+- AgentRunId + KnowledgeChunkId es una combinación única.
+- Recuperar un fragmento no implica que se haya utilizado como respaldo.
+- La evidencia identifica la versión exacta consultada.
+- Retirar un documento de futuras búsquedas no elimina
+  sus referencias históricas.
+- Las existencias, precios y permisos actuales se consultan
+  mediante herramientas; no se obtienen de documentos como
+  sustituto de los datos operativos.

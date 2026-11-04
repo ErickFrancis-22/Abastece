@@ -713,5 +713,73 @@ erDiagram
 - Una llamada Unknown requiere reconciliación antes de repetir
   una acción cuyo resultado no se conoce.
 - Los campos completos están en el diccionario.
+
+## 14. Auditoría
+
+```mermaid
+erDiagram
+    Actors o|--o{ AuditLogs : responsable
+
+    Actors {
+        int Id PK
+    }
+
+    AuditLogs {
+        bigint Id PK
+        int ActorId FK
+        nvarchar EventSource
+        nvarchar Action
+        nvarchar EntityType
+        nvarchar EntityId
+        datetime2 OccurredAt
+        uniqueidentifier CorrelationId
+    }
 ```
 
+Los eventos System pueden carecer de ActorId.
+EntityType y EntityId identifican descriptivamente el registro afectado;
+no constituyen una clave foránea.
+
+## 15. Conocimiento y evidencia del agente
+
+```mermaid
+erDiagram
+    KnowledgeDocuments ||--o{ KnowledgeChunks : contiene
+    KnowledgeChunks ||--o{ AgentEvidence : respalda
+    AgentRuns ||--o{ AgentEvidence : registra
+
+    KnowledgeDocuments {
+        int Id PK
+        uniqueidentifier DocumentKey
+        int VersionNumber
+        nvarchar Status
+        bit IsCurrent
+    }
+
+    KnowledgeChunks {
+        bigint Id PK
+        int KnowledgeDocumentId FK
+        int ChunkIndex
+        uniqueidentifier VectorPointId UK
+    }
+
+    AgentRuns {
+        bigint Id PK
+    }
+
+    AgentEvidence {
+        bigint Id PK
+        bigint AgentRunId FK
+        bigint KnowledgeChunkId FK
+        bit WasCited
+    }
+```
+
+### Restricciones adicionales
+
+- DocumentKey + VersionNumber es una combinación única.
+- KnowledgeDocumentId + ChunkIndex es una combinación única.
+- AgentRunId + KnowledgeChunkId es una combinación única.
+- Una ejecución puede terminar sin recuperar documentos.
+- Los campos completos y restricciones están en el diccionario.
+```
