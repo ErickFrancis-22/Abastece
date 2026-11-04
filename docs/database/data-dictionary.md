@@ -504,6 +504,8 @@ Cada solicitud corresponde a un único proveedor.
 | CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
 | ReplacesRequestId | int | Sí | FK hacia ReplenishmentRequests.Id; propuesta anterior. |
 | RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+| IdempotencyKey | uniqueidentifier | No | Clave única de la operación de creación. |
+| RequestHash | char(64) | No | Huella del contenido normalizado, calculada por el servidor. |
 
 ### Restricciones
 
@@ -831,3 +833,116 @@ del agente.
 - Deshabilitar al agente conserva el caso y bloquea nuevas acciones
   del agente; no elimina tareas pendientes.
 - Un caso Closed no se reabre automáticamente.
+
+## 26. AgentRuns
+
+Registra cada intento del agente de trabajar en un caso.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| AgentCaseId | int | No | FK hacia AgentCases.Id. |
+| AgentProfileId | int | No | FK hacia AgentProfiles.Id. |
+| Status | nvarchar(20) | No | Running, Completed, Failed, Stopped o Interrupted. |
+| StartedAt | datetime2 | No | Inicio en UTC. |
+| FinishedAt | datetime2 | Sí | Fin en UTC. |
+| ModelIdentifier | nvarchar(200) | No | Modelo utilizado. |
+| WorkflowVersion | nvarchar(50) | No | Versión del flujo e instrucciones utilizadas. |
+| MaxSteps | int | No | Límite de pasos para esta ejecución. |
+| TimeoutSeconds | int | No | Tiempo máximo configurado. |
+| ResultSummary | nvarchar(2000) | Sí | Resultado operativo verificable. |
+| ErrorCode | nvarchar(100) | Sí | Código de error, si corresponde. |
+
+### Restricciones
+
+- El agente debe estar habilitado al iniciar.
+- Solo puede existir una ejecución Running por caso.
+- La ejecución utiliza el agente asignado al caso.
+- Los límites deben ser mayores que cero.
+- Completed significa que el intento terminó correctamente;
+  no implica que el caso esté cerrado.
+- Esperar una aprobación finaliza la ejecución y deja el estado
+  correspondiente en el caso.
+- Failed indica un error que impidió completar el intento.
+- Stopped indica una detención controlada, por límite o deshabilitación.
+- Interrupted identifica una ejecución abandonada por una interrupción
+  del proceso, detectada durante la recuperación.
+- Antes de reintentar se revisan los efectos ya confirmados.
+- Un fallo no revierte automáticamente acciones confirmadas
+  en transacciones anteriores.
+
+## 27. AgentToolCalls
+
+Registra las herramientas solicitadas durante una ejecución
+y el resultado de su procesamiento.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| AgentRunId | bigint | No | FK hacia AgentRuns.Id. |
+| SequenceNumber | int | No | Orden de la llamada dentro de la ejecución. |
+| ToolName | nvarchar(100) | No | Nombre de la herramienta solicitada. |
+| Status | nvarchar(20) | No | Started, Succeeded, Failed, Denied o Unknown. |
+| ArgumentsJson | nvarchar(max) | No | Argumentos registrados sin secretos. |
+| ResultSummary | nvarchar(2000) | Sí | Resumen del resultado. |
+| RequestedAt | datetime2 | No | Momento de la solicitud en UTC. |
+| FinishedAt | datetime2 | Sí | Momento de finalización en UTC. |
+| OperationKey | uniqueidentifier | Sí | Clave de idempotencia para acciones de escritura. |
+| ErrorCode | nvarchar(100) | Sí | Motivo técnico o de autorización. |
+
+### Restricciones
+
+- AgentRunId + SequenceNumber es una combinación única.
+- SequenceNumber debe ser mayor que cero.
+- ArgumentsJson debe contener JSON válido.
+- Solo se ejecutan herramientas incluidas en la lista autorizada.
+- Antes de ejecutar se validan argumentos, permisos y habilitación
+  actual del agente.
+- Denied registra una llamada rechazada sin ejecutar la herramienta.
+- Succeeded registra una herramienta completada correctamente.
+- Failed registra un error con resultado conocido.
+- Unknown indica que no se pudo determinar si la acción se confirmó.
+  Debe reconciliarse antes de repetirla.
+- Las herramientas de escritura deben admitir idempotencia.
+  Sus reintentos reutilizan OperationKey para la misma operación.
+- Las claves no se generan de nuevo únicamente por reintentar.
+- Los registros no incluyen contraseñas, tokens ni razonamientos
+  internos del modelo.
+
+## 28. AuditLogs
+
+Conserva eventos relevantes de modificación y decisiones
+realizadas en el sistema.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | bigint | No | PK, IDENTITY. |
+| ActorId | int | Sí | FK hacia Actors.Id; responsable, cuando existe. |
+| EventSource | nvarchar(20) | No | User, Agent o System. |
+| Action | nvarchar(100) | No | Acción registrada. |
+| EntityType | nvarchar(100) | No | Tipo de registro afectado. |
+| EntityId | nvarchar(100) | No | Identificador del registro afectado. |
+| PreviousValuesJson | nvarchar(max) | Sí | Valores anteriores relevantes, sin secretos. |
+| NewValuesJson | nvarchar(max) | Sí | Valores nuevos relevantes, sin secretos. |
+| Reason | nvarchar(1000) | Sí | Justificación, cuando corresponda. |
+| OccurredAt | datetime2 | No | Fecha del evento en UTC. |
+| CorrelationId | uniqueidentifier | No | Identificador para relacionar eventos de una operación. |
+
+### Restricciones
+
+- Los eventos confirmados no se editan ni eliminan mediante
+  las funciones normales de la aplicación.
+- Los cambios de negocio y su auditoría se guardan en la misma
+  transacción cuando pertenecen a la misma base de datos.
+- Los valores JSON deben ser válidos cuando estén presentes.
+- Solo se registran los campos necesarios para explicar el cambio.
+- No se guardan contraseñas, hashes de contraseñas, tokens
+  ni claves privadas.
+- User y Agent requieren ActorId del tipo correspondiente.
+- System permite ActorId NULL para procesos deterministas
+  que no representan a una persona ni a un agente.
+- EntityId es una referencia descriptiva, no una clave foránea.
+- La auditoría complementa los documentos de negocio;
+  no sustituye movimientos, solicitudes ni aprobaciones.
+- CorrelationId relaciona eventos; no sustituye una clave
+  de idempotencia.

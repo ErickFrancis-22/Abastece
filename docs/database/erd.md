@@ -424,6 +424,8 @@ erDiagram
         int ReviewedByUserId FK
         int CancelledByUserId FK
         int ReplacesRequestId FK
+        uniqueidentifier IdempotencyKey UK
+        char RequestHash
         rowversion RowVersion
     }
 
