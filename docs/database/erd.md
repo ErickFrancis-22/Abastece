@@ -334,4 +334,63 @@ erDiagram
   entre tipos y orígenes se describen en el diccionario.
 - Para simplificar esta vista, no se dibujan las relaciones
   al movimiento original.
+
+
+## 8. Salidas de inventario
+
+```mermaid
+erDiagram
+    Users ||--o{ InventoryIssues : registra
+    InventoryIssues ||--|{ InventoryIssueDetails : contiene
+    Products ||--o{ InventoryIssueDetails : sale_en
+    InventoryIssueDetails o|--|| InventoryMovements : genera
+
+    Users {
+        int Id PK
+    }
+
+    Products {
+        int Id PK
+    }
+
+    InventoryIssues {
+        int Id PK
+        uniqueidentifier IdempotencyKey UK
+        char RequestHash
+        nvarchar Reason
+        nvarchar ExternalReference
+        datetime2 OccurredAt
+        datetime2 CreatedAt
+        int CreatedByUserId FK
+    }
+
+    InventoryIssueDetails {
+        int Id PK
+        int InventoryIssueId FK
+        int ProductId FK
+        int Quantity
+    }
+
+    InventoryMovements {
+        bigint Id PK
+        int InventoryIssueDetailId FK
+        nvarchar MovementType
+        int Quantity
+    }
 ```
+
+### Restricciones adicionales
+
+- Una salida confirmada contiene uno o varios detalles.
+- InventoryIssueId + ProductId es una combinación única.
+- Cada detalle genera exactamente un movimiento SaleIssue.
+- Un movimiento puede no tener detalle de salida porque puede
+  originarse en una apertura, recepción o ajuste.
+- InventoryMovements.InventoryIssueDetailId es opcional y único
+  cuando tiene valor.
+- Cabecera, detalles, movimientos y actualización de saldos
+  se confirman en una misma transacción.
+- No se permiten salidas parciales implícitas.
+```
+
+
