@@ -482,3 +482,79 @@ Identifica los productos y cantidades de una salida.
 - Cada detalle genera exactamente un movimiento SaleIssue.
 - El movimiento conserva el mismo producto y cantidad del detalle.
 - Las compensaciones posteriores no modifican el detalle original.
+
+## 17. ReplenishmentRequests
+
+Representa una propuesta de compra presentada para revisión.
+Cada solicitud corresponde a un único proveedor.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| SupplierId | int | No | FK hacia Suppliers.Id. |
+| Status | nvarchar(20) | No | Pending, Approved, Rejected, Cancelled o ConvertedToOrder. |
+| Justification | nvarchar(1000) | No | Justificación general de la propuesta. |
+| CreatedByActorId | int | No | FK hacia Actors.Id; persona o agente creador. |
+| CreatedAt | datetime2 | No | Fecha de presentación en UTC. |
+| ReviewedByUserId | int | Sí | FK hacia Users.Id; gerente que revisó. |
+| ReviewedAt | datetime2 | Sí | Fecha de aprobación o rechazo. |
+| ReviewComment | nvarchar(500) | Sí | Observación; obligatoria al rechazar. |
+| CancelledByUserId | int | Sí | FK hacia Users.Id. |
+| CancelledAt | datetime2 | Sí | Fecha de cancelación. |
+| CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
+| ReplacesRequestId | int | Sí | FK hacia ReplenishmentRequests.Id; propuesta anterior. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- Se crea en estado Pending y contiene al menos un detalle.
+- Su contenido no se edita después de presentarse.
+- Solo el gerente puede aprobar o rechazar una solicitud pendiente.
+- Un encargado o gerente puede cancelarla antes de generar una orden.
+- El agente no puede aprobar, rechazar ni cancelar solicitudes.
+- Una solicitud rechazada o cancelada puede tener un reemplazo.
+- ReplacesRequestId no puede referenciar la propia solicitud.
+- Presentar un reemplazo no transfiere la aprobación anterior.
+- Una solicitud aprobada puede generar como máximo una orden.
+- Emitir la orden y cambiar el estado a ConvertedToOrder
+  constituye una misma transacción.
+- Ningún estado de la solicitud modifica por sí solo las existencias
+  ni las cantidades pendientes de recibir.
+- Los estados Rejected, Cancelled y ConvertedToOrder son finales.
+
+## 18. ReplenishmentRequestDetails
+
+Conserva los productos propuestos y las condiciones utilizadas
+para evaluar la compra.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ReplenishmentRequestId | int | No | FK hacia ReplenishmentRequests.Id. |
+| ProductSupplierId | int | No | FK hacia ProductSuppliers.Id. |
+| EstimatedNeedQuantity | int | No | Necesidad estimada, mayor que cero. |
+| ProposedQuantity | int | No | Cantidad propuesta para comprar, mayor que cero. |
+| EstimatedUnitCost | decimal(18,2) | No | Copia del costo evaluado, mayor que cero. |
+| LeadTimeDaysSnapshot | int | No | Copia del plazo estimado evaluado. |
+| MinimumOrderQuantitySnapshot | int | No | Copia de la compra mínima evaluada. |
+| Justification | nvarchar(1000) | No | Explicación de la cantidad y elección propuesta. |
+
+### Restricciones
+
+- ReplenishmentRequestId + ProductSupplierId es una combinación única.
+- El proveedor de ProductSupplierId debe coincidir con el proveedor
+  de la cabecera.
+- El producto se obtiene mediante ProductSuppliers.ProductId.
+- Al presentar la solicitud, producto, proveedor y relación
+  de suministro deben estar activos.
+- ProposedQuantity debe ser mayor o igual que EstimatedNeedQuantity
+  y MinimumOrderQuantitySnapshot.
+- Los valores históricos no cambian al actualizar ProductSuppliers.
+- Antes de emitir una orden se comparan las condiciones actuales
+  con las aprobadas. Las diferencias exigen una nueva revisión.
+- El subtotal se calcula como ProposedQuantity por EstimatedUnitCost.
+- El excedente se calcula como ProposedQuantity menos
+  EstimatedNeedQuantity.
+- El total estimado de la solicitud es la suma de sus subtotales.
+- En esta versión, el total estimado representa únicamente el costo
+  de los productos; no calcula flete, impuestos ni costos de importación.
