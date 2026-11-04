@@ -41,8 +41,9 @@ operaciones realizadas por usuarios y por el agente de IA.
   Su tipo determina si aumenta o disminuye las existencias.
 - RN-018: No se permiten operaciones que dejen existencias negativas,
   incluso si varias operaciones ocurren al mismo tiempo.
-- RN-019: Las existencias iniciales se registran mediante movimientos
-  identificados como saldo inicial.
+- RN-019: Las existencias iniciales mayores que cero se registran
+  mediante un movimiento de saldo inicial. Una apertura aprobada
+  con cero unidades habilita el inventario sin generar movimiento.
 - RN-020: Los movimientos confirmados no se editan ni eliminan.
   Una corrección requiere un movimiento compensatorio vinculado
   al original y con su justificación.
@@ -104,8 +105,10 @@ operaciones realizadas por usuarios y por el agente de IA.
   en la orden.
 - RN-043: Confirmar una recepción genera movimientos de entrada
   por las cantidades efectivamente recibidas.
-- RN-044: La recepción, los movimientos y la actualización de la orden
-  se guardan en una misma transacción.
+- RN-044: Confirmar una recepción, generar sus movimientos y actualizar
+  existencias, cantidades recibidas y estado de la orden constituye
+  una misma transacción. Registrar únicamente la llegada no produce
+  esos efectos.
 - RN-045: Una recepción no puede procesarse dos veces.
 - RN-046: El gerente puede cancelar cantidades pendientes con un motivo.
   La cancelación no revierte mercancía que ya fue recibida.
@@ -181,9 +184,11 @@ operaciones realizadas por usuarios y por el agente de IA.
 - RN-073: Una solicitud pendiente o aprobada puede cancelarse,
   antes de generar una orden, por un usuario con rol de encargado
   de inventario o gerente. Debe registrarse el motivo.
-- RN-074: El agente no puede cancelar solicitudes. Puede señalar
-  que necesitan revisión y preparar una propuesta de reemplazo,
-  cuya presentación requiere que la anterior haya sido cancelada.
+- RN-074: El agente no puede cancelar solicitudes. Puede preparar
+  una propuesta de reemplazo. Si la anterior está pendiente o aprobada,
+  un usuario autorizado debe cancelarla antes de presentar el reemplazo.
+  Si está rechazada, se conserva en ese estado y se requiere la revisión
+  humana prevista para continuar buscando alternativas.
 - RN-075: Una solicitud pasa a Convertida en orden únicamente
   cuando su orden se emite correctamente. Ambos cambios deben
   completarse en una misma transacción.
@@ -220,9 +225,11 @@ operaciones realizadas por usuarios y por el agente de IA.
   declaradas por el encargado para ajustarlas al saldo pendiente.
 - RN-090: La validación y actualización de las cantidades pendientes
   deben protegerse contra operaciones concurrentes.
-- RN-091: Una recepción rechazada no genera movimientos ni modifica
-  existencias o cantidades pendientes. Si se corrige su contenido,
-  debe enviarse como una nueva operación con otra clave de idempotencia.
+- RN-091: Un intento de confirmación rechazado no genera movimientos
+  ni modifica existencias o cantidades pendientes. La recepción
+  permanece pendiente y puede volver a confirmarse si el impedimento
+  desaparece. Si deben corregirse sus cantidades, se cancela y se
+  registra otra recepción con una nueva clave de idempotencia.
 - RN-092: Una salida debe contener al menos un producto y cantidades
   enteras mayores que cero. Un producto no puede repetirse en el detalle.
 - RN-093: Una salida solo puede consumir existencias registradas.
@@ -268,10 +275,10 @@ operaciones realizadas por usuarios y por el agente de IA.
   y Cancelado.
 - RN-109: Solo puede existir un conteo abierto por producto.
   Al abrirlo, el sistema guarda la existencia registrada de referencia.
-- RN-110: Mientras exista un conteo abierto, el sistema bloquea
-  entradas, salidas y ajustes del producto. La apertura del conteo
-  y las operaciones de inventario deben coordinarse para evitar
-  conflictos concurrentes.
+- RN-110: Mientras exista un conteo abierto, se bloquean las operaciones
+  que modifican existencias del producto. Se permite registrar
+  llegadas pendientes de confirmación, sin generar movimientos.
+  El control debe protegerse frente a operaciones concurrentes.
 - RN-111: Confirmar un conteo guarda la cantidad observada,
   calcula la diferencia y libera el bloqueo en una misma transacción.
   No modifica las existencias.

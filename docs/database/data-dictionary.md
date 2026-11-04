@@ -367,8 +367,9 @@ confirmado o en un error de una salida registrada.
 - Un conteo puede tener varias solicitudes históricas rechazadas
   o canceladas, pero solo una pendiente y una aplicada como máximo.
   Su diferencia no puede aplicarse dos veces.
-- Si hubo movimientos posteriores al conteo, se exige una nueva
-  verificación antes de continuar.
+- Si hubo movimientos posteriores al conteo, no se aplica el ajuste.
+  Debe realizarse un nuevo conteo y cancelar la solicitud pendiente
+  desactualizada antes de presentar otra basada en el nuevo resultado.
 - Las correcciones de salidas consideran compensaciones anteriores
   para no devolver más unidades de las registradas originalmente.
 - No se permiten ajustes que dejen existencias negativas.
@@ -523,6 +524,13 @@ Cada solicitud corresponde a un único proveedor.
 - Ningún estado de la solicitud modifica por sí solo las existencias
   ni las cantidades pendientes de recibir.
 - Los estados Rejected, Cancelled y ConvertedToOrder son finales.
+- La misma clave de idempotencia y contenido devuelve la solicitud
+  existente, sin duplicar cabecera ni detalles.
+- La misma clave con contenido diferente se rechaza por conflicto.
+- El servidor calcula la huella e incluye la identidad creadora
+  en el contenido verificado.
+- Los permisos se comprueban también en los reintentos.
+- La clave y la huella se conservan aunque cambie el estado.
 
 ## 18. ReplenishmentRequestDetails
 

@@ -158,7 +158,7 @@ y crear solicitudes de reposición.
 
 No puede:
 
-- Aprobar sus propias solicitudes.
+- Aprobar o rechazar cualquier solicitud de reposición.
 - Emitir órdenes de compra.
 - Aprobar ajustes de inventario.
 - Confirmar recepciones de mercancía.
@@ -177,7 +177,6 @@ operaciones realizadas por personas.
 - Pagos reales y comunicación automática con proveedores externos.
 - Devoluciones a proveedores.
 - Control por lotes, números de serie o fechas de vencimiento.
-- Pronósticos avanzados de demanda.
 - Coordinación de múltiples agentes.
 - Pronósticos de demanda y estimación de días de cobertura.
 - Restricciones de compra por múltiplos de empaque.

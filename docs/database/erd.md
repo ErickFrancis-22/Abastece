@@ -231,7 +231,7 @@ erDiagram
     }
 
     StockCounts {
-        int Id PK
+        bigint Id PK
         int ProductId FK
     }
 
@@ -248,7 +248,7 @@ erDiagram
         int Id PK
         int ProductId FK
         int StockCountId FK
-        int OriginalMovementId FK
+        bigint OriginalMovementId FK
         int QuantityDelta
         nvarchar Status
         int RequestedByUserId FK
