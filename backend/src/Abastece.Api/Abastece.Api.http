@@ -1,0 +1,6 @@
+@Abastece.Api_HostAddress = http://localhost:5068
+
+GET {{Abastece.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
