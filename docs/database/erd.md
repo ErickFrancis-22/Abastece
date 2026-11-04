@@ -597,6 +597,121 @@ erDiagram
 - La confirmación valida los pendientes actuales y se protege
   contra operaciones concurrentes.
 - Los campos completos se describen en el diccionario.
+
+
+## 12. Alertas y casos del agente
+
+```mermaid
+erDiagram
+    Products ||--o{ StockAlerts : genera
+    StockAlerts ||--o| AgentCases : origina
+    AgentProfiles ||--o{ AgentCases : atiende
+    ReplenishmentRequests o|--o{ AgentCases : propuesta_actual
+
+    Products {
+        int Id PK
+    }
+
+    StockAlerts {
+        int Id PK
+        int ProductId FK
+        nvarchar Status
+        int DetectedQuantity
+        int MinimumStockSnapshot
+        datetime2 CreatedAt
+        datetime2 ClosedAt
+        rowversion RowVersion
+    }
+
+    AgentProfiles {
+        int Id PK
+        int ActorId FK, UK
+        bit IsEnabled
+    }
+
+    AgentCases {
+        int Id PK
+        int StockAlertId FK, UK
+        int AgentProfileId FK
+        nvarchar Status
+        int CurrentRequestId FK
+        datetime2 CreatedAt
+        datetime2 UpdatedAt
+        datetime2 ClosedAt
+        rowversion RowVersion
+    }
+
+    ReplenishmentRequests {
+        int Id PK
+        nvarchar Status
+    }
 ```
 
+### Restricciones adicionales
+
+- Solo puede existir una alerta activa por producto.
+- Cada alerta puede tener como máximo un caso.
+- Un caso puede existir sin una solicitud relacionada.
+- Una solicitud con varios productos puede ser seguida desde
+  varios casos, uno por cada alerta correspondiente.
+- Resolver una alerta no cierra automáticamente el caso.
+- Cerrar un caso no resuelve automáticamente la alerta.
+- Los campos completos están en el diccionario.
+
+## 13. Ejecuciones y herramientas
+
+```mermaid
+erDiagram
+    AgentCases ||--o{ AgentRuns : registra
+    AgentProfiles ||--o{ AgentRuns : ejecuta
+    AgentRuns ||--o{ AgentToolCalls : contiene
+
+    AgentCases {
+        int Id PK
+        int AgentProfileId FK
+    }
+
+    AgentProfiles {
+        int Id PK
+    }
+
+    AgentRuns {
+        bigint Id PK
+        int AgentCaseId FK
+        int AgentProfileId FK
+        nvarchar Status
+        datetime2 StartedAt
+        datetime2 FinishedAt
+        nvarchar ModelIdentifier
+        nvarchar WorkflowVersion
+        int MaxSteps
+        int TimeoutSeconds
+    }
+
+    AgentToolCalls {
+        bigint Id PK
+        bigint AgentRunId FK
+        int SequenceNumber
+        nvarchar ToolName
+        nvarchar Status
+        nvarchar ArgumentsJson
+        datetime2 RequestedAt
+        datetime2 FinishedAt
+        uniqueidentifier OperationKey
+    }
+```
+
+### Restricciones adicionales
+
+- Solo puede existir una ejecución Running por caso.
+- El agente de la ejecución debe coincidir con el asignado al caso.
+- AgentRunId + SequenceNumber es una combinación única.
+- Una ejecución puede terminar sin llamar herramientas.
+- Una ejecución Completed no implica un caso Closed.
+- Las acciones de escritura reutilizan la clave de operación
+  en sus reintentos.
+- Una llamada Unknown requiere reconciliación antes de repetir
+  una acción cuyo resultado no se conoce.
+- Los campos completos están en el diccionario.
+```
 
