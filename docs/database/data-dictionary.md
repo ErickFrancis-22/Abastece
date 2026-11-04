@@ -598,3 +598,155 @@ La emisión es simulada en la primera versión.
 - Las condiciones emitidas no se sobrescriben con cambios del catálogo.
 - Las cancelaciones posteriores afectan únicamente cantidades pendientes
   y conservan motivo, fecha y responsable.
+
+## 20. PurchaseOrderDetails
+
+Conserva los productos y condiciones acordadas al emitir una orden,
+junto con las cantidades recibidas y canceladas.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| PurchaseOrderId | int | No | FK hacia PurchaseOrders.Id. |
+| ReplenishmentRequestDetailId | int | No | FK hacia ReplenishmentRequestDetails.Id; único. |
+| ProductId | int | No | FK hacia Products.Id. |
+| OrderedQuantity | int | No | Cantidad ordenada, mayor que cero. |
+| ReceivedQuantity | int | No | Cantidad recibida acumulada; comienza en cero. |
+| CancelledQuantity | int | No | Cantidad cancelada acumulada; comienza en cero. |
+| UnitCost | decimal(18,2) | No | Costo unitario acordado, mayor que cero. |
+| LeadTimeDays | int | No | Plazo estimado acordado; no negativo. |
+| MinimumOrderQuantity | int | No | Compra mínima evaluada al emitir. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- PurchaseOrderId + ProductId es una combinación única.
+- El detalle de solicitud debe pertenecer a la solicitud
+  que originó la orden.
+- ProductId debe coincidir con el producto del detalle de solicitud.
+- OrderedQuantity y las condiciones se copian de la propuesta aprobada.
+- Las cantidades recibidas y canceladas no pueden ser negativas.
+- ReceivedQuantity + CancelledQuantity no puede superar OrderedQuantity.
+- Solo las recepciones confirmadas aumentan ReceivedQuantity.
+- Solo una cancelación autorizada aumenta CancelledQuantity.
+- Los acumulados se actualizan junto con los documentos que
+  los justifican, en la misma transacción.
+- Las cantidades ordenadas y condiciones emitidas no se editan.
+- Una cancelación no cambia OrderedQuantity: conserva lo originalmente
+  pedido y registra por separado lo que se decidió cancelar.
+- Las cantidades pendientes no se almacenan en otro campo;
+  se calculan a partir de las cantidades anteriores.
+
+### Cálculos
+
+PendingQuantity =
+OrderedQuantity - ReceivedQuantity - CancelledQuantity
+
+OrderedSubtotal =
+OrderedQuantity * UnitCost
+
+
+## 21. PurchaseOrderCancellations
+
+Registra cancelaciones autorizadas de cantidades pendientes
+de un detalle de orden.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| PurchaseOrderDetailId | int | No | FK hacia PurchaseOrderDetails.Id. |
+| Quantity | int | No | Cantidad cancelada, mayor que cero. |
+| Reason | nvarchar(500) | No | Motivo obligatorio. |
+| CancelledByUserId | int | No | FK hacia Users.Id; gerente responsable. |
+| CancelledAt | datetime2 | No | Fecha en UTC. |
+| IdempotencyKey | uniqueidentifier | No | Clave única de la operación. |
+| RequestHash | char(64) | No | Huella del contenido normalizado, calculada por el servidor. |
+
+### Restricciones
+
+- Solo el gerente puede cancelar cantidades pendientes.
+- Quantity no puede superar el pendiente actual del detalle.
+- La cancelación no reduce ReceivedQuantity ni las existencias.
+- Registrar la cancelación, actualizar CancelledQuantity y recalcular
+  el estado de la orden constituye una misma transacción.
+- Los registros confirmados no se editan ni eliminan.
+- Reintentar con la misma clave y contenido devuelve el resultado
+  existente; con contenido diferente se rechaza.
+- La autorización se verifica también en los reintentos.
+
+## 22. GoodsReceipts
+
+Registra una entrega física asociada a una orden de compra.
+Su confirmación incorpora la mercancía al inventario.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| PurchaseOrderId | int | No | FK hacia PurchaseOrders.Id. |
+| Status | nvarchar(20) | No | Pending, Confirmed o Cancelled. |
+| SupplierDocumentReference | nvarchar(100) | Sí | Referencia del documento de entrega. |
+| ArrivedAt | datetime2 | No | Momento de llegada, en UTC. |
+| RegisteredByUserId | int | No | FK hacia Users.Id. |
+| CreatedAt | datetime2 | No | Momento de registro, en UTC. |
+| ConfirmedByUserId | int | Sí | FK hacia Users.Id. |
+| ConfirmedAt | datetime2 | Sí | Momento de confirmación, en UTC. |
+| CancelledByUserId | int | Sí | FK hacia Users.Id. |
+| CancelledAt | datetime2 | Sí | Momento de cancelación, en UTC. |
+| CancellationReason | nvarchar(500) | Sí | Obligatorio al cancelar. |
+| Notes | nvarchar(1000) | Sí | Observaciones de la entrega. |
+| IdempotencyKey | uniqueidentifier | No | Clave única del registro de llegada. |
+| RequestHash | char(64) | No | Huella del contenido normalizado, calculada por el servidor. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- Se crea en estado Pending y contiene al menos un detalle.
+- Solo se registra contra una orden con cantidades pendientes.
+- Registrar la llegada no genera movimientos, no aumenta existencias
+  ni reduce el pendiente de la orden.
+- La llegada puede registrarse aunque haya conteos abiertos.
+  La mercancía permanece físicamente separada.
+- Los detalles presentados no se editan. Si contienen errores,
+  se cancela la recepción pendiente y se registra otra.
+- Un encargado o gerente puede cancelar una recepción pendiente,
+  indicando el motivo.
+- El encargado confirma la recepción tras verificar la entrega.
+- Antes de confirmar se validan nuevamente los pendientes de la orden,
+  la apertura de inventario y la ausencia de conteos abiertos.
+- Si cualquier detalle incumple las condiciones, se rechaza
+  toda la confirmación y la recepción permanece Pending.
+- Confirmar actualiza detalles de orden, movimientos, saldos
+  y estado de recepción en una misma transacción.
+- Una recepción Confirmed o Cancelled no puede reabrirse.
+- Una recepción confirmada no admite correcciones en esta versión.
+- La clave de idempotencia evita duplicar el registro de llegada:
+  misma clave y contenido devuelve el registro existente;
+  misma clave con contenido diferente se rechaza.
+- Repetir la confirmación de una recepción ya confirmada devuelve
+  su resultado sin generar movimientos nuevos.
+- La autorización se verifica también en los reintentos.
+
+## 23. GoodsReceiptDetails
+
+Registra las cantidades declaradas en una entrega,
+vinculadas a los detalles de la orden.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| GoodsReceiptId | int | No | FK hacia GoodsReceipts.Id. |
+| PurchaseOrderDetailId | int | No | FK hacia PurchaseOrderDetails.Id. |
+| Quantity | int | No | Cantidad entera mayor que cero. |
+
+### Restricciones
+
+- GoodsReceiptId + PurchaseOrderDetailId es una combinación única.
+- El detalle de orden debe pertenecer a la orden de la cabecera.
+- El producto se obtiene mediante PurchaseOrderDetails.ProductId.
+- La cantidad declarada no puede superar el pendiente al registrar.
+- Una recepción pendiente no reserva cantidades de la orden.
+  El límite se valida nuevamente al confirmar.
+- El sistema no reduce automáticamente la cantidad declarada.
+- Cada detalle de una recepción confirmada genera exactamente
+  un movimiento PurchaseReceipt con el mismo producto y cantidad.
+- Los detalles pendientes o cancelados no generan movimientos.

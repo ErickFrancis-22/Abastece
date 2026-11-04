@@ -453,6 +453,79 @@ erDiagram
 - Las condiciones copiadas en el detalle conservan lo presentado
   al gerente, aunque cambie el catálogo.
 - Los campos completos se describen en el diccionario de datos.
+
+
+## 10. Órdenes de compra y cancelaciones
+
+```mermaid
+erDiagram
+    ReplenishmentRequests ||--o| PurchaseOrders : origina
+    PurchaseOrders ||--|{ PurchaseOrderDetails : contiene
+    Products ||--o{ PurchaseOrderDetails : solicitado_en
+    PurchaseOrderDetails ||--o{ PurchaseOrderCancellations : registra
+
+    ReplenishmentRequests {
+        int Id PK
+        int SupplierId FK
+        nvarchar Status
+    }
+
+    PurchaseOrders {
+        int Id PK
+        int ReplenishmentRequestId FK, UK
+        int SupplierId FK
+        nvarchar Status
+        int IssuedByUserId FK
+        datetime2 IssuedAt
+        rowversion RowVersion
+    }
+
+    PurchaseOrderDetails {
+        int Id PK
+        int PurchaseOrderId FK
+        int ReplenishmentRequestDetailId FK, UK
+        int ProductId FK
+        int OrderedQuantity
+        int ReceivedQuantity
+        int CancelledQuantity
+        decimal UnitCost
+        int LeadTimeDays
+        int MinimumOrderQuantity
+        rowversion RowVersion
+    }
+
+    Products {
+        int Id PK
+    }
+
+    PurchaseOrderCancellations {
+        int Id PK
+        int PurchaseOrderDetailId FK
+        int Quantity
+        int CancelledByUserId FK
+        datetime2 CancelledAt
+        uniqueidentifier IdempotencyKey UK
+        char RequestHash
+    }
+```
+
+### Restricciones adicionales
+
+- Una solicitud puede generar cero o una orden.
+- Toda orden corresponde a una solicitud aprobada al emitirla.
+- Una orden contiene al menos un detalle.
+- PurchaseOrderId + ProductId es una combinación única.
+- El proveedor de la orden coincide con el de su solicitud.
+- ReplenishmentRequestDetailId referencia el detalle aprobado
+  del que se copiaron producto, cantidad y condiciones.
+- IssuedByUserId y CancelledByUserId referencian Users.Id.
+- SupplierId referencia Suppliers.Id.
+- Algunas relaciones no se dibujan para simplificar la vista.
+- Cada cancelación afecta únicamente cantidades pendientes.
+- El pendiente se calcula como cantidad ordenada menos
+  cantidad recibida menos cantidad cancelada.
+- El estado de la orden considera todos sus detalles.
+- Los campos completos están en el diccionario de datos.
 ```
 
 
