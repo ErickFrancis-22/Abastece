@@ -750,3 +750,84 @@ vinculadas a los detalles de la orden.
 - Cada detalle de una recepción confirmada genera exactamente
   un movimiento PurchaseReceipt con el mismo producto y cantidad.
 - Los detalles pendientes o cancelados no generan movimientos.
+## 24. StockAlerts
+
+Registra episodios de existencias bajas por producto.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ProductId | int | No | FK hacia Products.Id. |
+| Status | nvarchar(20) | No | Active, Resolved o Cancelled. |
+| DetectedQuantity | int | No | Saldo observado al detectar la alerta. |
+| MinimumStockSnapshot | int | No | Nivel mínimo utilizado al detectarla. |
+| CreatedAt | datetime2 | No | Fecha de detección, en UTC. |
+| ClosedAt | datetime2 | Sí | Fecha de resolución o cancelación. |
+| ClosureReason | nvarchar(500) | Sí | Explicación del cierre. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Restricciones
+
+- Solo se generan para productos activos con inventario abierto.
+- La detección ocurre cuando QuantityOnHand es menor o igual
+  que MinimumStock.
+- Solo puede existir una alerta Active por producto.
+- Las revisiones repetidas no crean alertas activas duplicadas.
+- Los valores de detección se conservan como evidencia histórica.
+- La alerta se resuelve cuando el saldo supera el mínimo vigente.
+- Aprobar una solicitud o emitir una orden no resuelve la alerta:
+  las existencias todavía no aumentaron.
+- Si se desactiva el producto, su alerta activa se cancela
+  con el motivo correspondiente.
+- Una nueva caída después del cierre genera otra alerta.
+- La detección y seguimiento manual siguen disponibles
+  aunque el agente esté deshabilitado.
+
+## 25. AgentCases
+
+Conserva el seguimiento operativo de una alerta entre ejecuciones
+del agente.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| StockAlertId | int | No | FK hacia StockAlerts.Id; único. |
+| AgentProfileId | int | No | FK hacia AgentProfiles.Id. |
+| Status | nvarchar(30) | No | Estado del caso. |
+| CurrentRequestId | int | Sí | FK hacia ReplenishmentRequests.Id. |
+| Summary | nvarchar(2000) | Sí | Resumen operativo actualizado. |
+| CreatedAt | datetime2 | No | Fecha de creación en UTC. |
+| UpdatedAt | datetime2 | No | Última actualización en UTC. |
+| ClosedAt | datetime2 | Sí | Fecha de cierre en UTC. |
+| ClosureReason | nvarchar(500) | Sí | Motivo del cierre. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Estados
+
+- Open: pendiente de investigación o de continuar el trabajo.
+- AwaitingApproval: espera una decisión sobre una solicitud.
+- Monitoring: sigue una reposición abierta.
+- NeedsHumanReview: requiere intervención para poder continuar.
+- Closed: seguimiento finalizado con motivo registrado.
+
+### Restricciones
+
+- Una alerta puede tener como máximo un caso.
+- El producto se obtiene mediante la alerta relacionada.
+- El caso conserva su estado aunque no haya una ejecución activa.
+- CurrentRequestId identifica la propuesta que se sigue actualmente.
+  Las propuestas anteriores conservan su historial y vínculos de reemplazo.
+- La solicitud relacionada debe incluir el producto de la alerta.
+- El resumen no sustituye las consultas a los datos actuales.
+- Una decisión del gerente no autoriza al agente a omitir validaciones.
+- Si la solicitud es rechazada, el caso requiere revisión humana
+  antes de presentar automáticamente otra propuesta.
+- Resolver la alerta no cierra automáticamente el caso si todavía
+  existe una compra relacionada pendiente de seguimiento.
+- El caso puede cerrarse cuando la alerta está resuelta y no quedan
+  decisiones ni compras relacionadas pendientes.
+- Un gerente puede cerrar el caso con una justificación, incluso
+  si el problema continúa. Esto no resuelve la alerta.
+- Deshabilitar al agente conserva el caso y bloquea nuevas acciones
+  del agente; no elimina tareas pendientes.
+- Un caso Closed no se reabre automáticamente.

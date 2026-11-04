@@ -526,6 +526,75 @@ erDiagram
   cantidad recibida menos cantidad cancelada.
 - El estado de la orden considera todos sus detalles.
 - Los campos completos están en el diccionario de datos.
+
+## 11. Recepciones de mercancía
+
+```mermaid
+erDiagram
+    PurchaseOrders ||--o{ GoodsReceipts : recibe
+    GoodsReceipts ||--|{ GoodsReceiptDetails : contiene
+    PurchaseOrderDetails ||--o{ GoodsReceiptDetails : recibido_en
+    GoodsReceiptDetails o|--o| InventoryMovements : origina
+
+    PurchaseOrders {
+        int Id PK
+        nvarchar Status
+    }
+
+    PurchaseOrderDetails {
+        int Id PK
+        int PurchaseOrderId FK
+        int ProductId FK
+        int OrderedQuantity
+        int ReceivedQuantity
+        int CancelledQuantity
+    }
+
+    GoodsReceipts {
+        int Id PK
+        int PurchaseOrderId FK
+        nvarchar Status
+        datetime2 ArrivedAt
+        int RegisteredByUserId FK
+        int ConfirmedByUserId FK
+        datetime2 ConfirmedAt
+        int CancelledByUserId FK
+        uniqueidentifier IdempotencyKey UK
+        char RequestHash
+        rowversion RowVersion
+    }
+
+    GoodsReceiptDetails {
+        int Id PK
+        int GoodsReceiptId FK
+        int PurchaseOrderDetailId FK
+        int Quantity
+    }
+
+    InventoryMovements {
+        bigint Id PK
+        int GoodsReceiptDetailId FK
+        nvarchar MovementType
+        int Quantity
+    }
+```
+
+### Restricciones adicionales
+
+- Una orden puede tener varias recepciones.
+- Cada recepción contiene al menos un detalle.
+- GoodsReceiptId + PurchaseOrderDetailId es una combinación única.
+- Cada detalle debe pertenecer a la orden indicada en la cabecera.
+- Los responsables de registro, confirmación y cancelación
+  referencian Users.Id.
+- Un detalle pendiente o cancelado no genera movimiento.
+- Un detalle confirmado genera exactamente un movimiento
+  PurchaseReceipt.
+- GoodsReceiptDetailId es opcional en InventoryMovements y único
+  cuando tiene valor.
+- La confirmación valida los pendientes actuales y se protege
+  contra operaciones concurrentes.
+- Los campos completos se describen en el diccionario.
 ```
 
 
