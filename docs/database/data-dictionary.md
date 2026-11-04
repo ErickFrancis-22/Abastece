@@ -558,3 +558,43 @@ para evaluar la compra.
 - El total estimado de la solicitud es la suma de sus subtotales.
 - En esta versión, el total estimado representa únicamente el costo
   de los productos; no calcula flete, impuestos ni costos de importación.
+
+## 19. PurchaseOrders
+
+Representa una orden de compra emitida a partir de una solicitud aprobada.
+La emisión es simulada en la primera versión.
+
+| Campo | Tipo SQL Server | Permite NULL | Restricciones / descripción |
+|---|---|---|---|
+| Id | int | No | PK, IDENTITY. |
+| ReplenishmentRequestId | int | No | FK hacia ReplenishmentRequests.Id; único. |
+| SupplierId | int | No | FK hacia Suppliers.Id. |
+| Status | nvarchar(30) | No | Estado de la orden. |
+| IssuedByUserId | int | No | FK hacia Users.Id; gerente que emitió. |
+| IssuedAt | datetime2 | No | Fecha de emisión en UTC. |
+| Notes | nvarchar(1000) | Sí | Observaciones de la orden. |
+| RowVersion | rowversion | No | Control de modificaciones concurrentes. |
+
+### Estados
+
+- Issued: emitida, sin recepciones confirmadas y con saldo pendiente.
+- PartiallyReceived: parcialmente recibida, con saldo pendiente.
+- Completed: toda la cantidad ordenada fue recibida, sin cancelaciones.
+- Cancelled: toda la cantidad fue cancelada, sin recepciones.
+- ClosedPartial: sin saldo pendiente, con cantidades recibidas y canceladas.
+
+### Restricciones
+
+- La solicitud de origen debe estar Approved.
+- SupplierId debe coincidir con el proveedor de la solicitud.
+- Solo el gerente puede emitir la orden.
+- Se verifican las condiciones actuales frente a las aprobadas.
+- Cada solicitud genera como máximo una orden.
+- La emisión copia las condiciones aprobadas a los detalles de la orden.
+- Crear cabecera y detalles, y cambiar la solicitud a ConvertedToOrder,
+  constituye una misma transacción.
+- Emitir aumenta las cantidades pendientes de recibir;
+  no modifica las existencias.
+- Las condiciones emitidas no se sobrescriben con cambios del catálogo.
+- Las cancelaciones posteriores afectan únicamente cantidades pendientes
+  y conservan motivo, fecha y responsable.

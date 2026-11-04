@@ -391,6 +391,68 @@ erDiagram
 - Cabecera, detalles, movimientos y actualización de saldos
   se confirman en una misma transacción.
 - No se permiten salidas parciales implícitas.
+
+
+## 9. Solicitudes de reposición
+
+```mermaid
+erDiagram
+    Suppliers ||--o{ ReplenishmentRequests : recibe_propuesta
+    Actors ||--o{ ReplenishmentRequests : crea
+    ReplenishmentRequests ||--|{ ReplenishmentRequestDetails : contiene
+    ProductSuppliers ||--o{ ReplenishmentRequestDetails : fundamenta
+
+    Suppliers {
+        int Id PK
+    }
+
+    Actors {
+        int Id PK
+    }
+
+    ProductSuppliers {
+        int Id PK
+        int ProductId FK
+        int SupplierId FK
+    }
+
+    ReplenishmentRequests {
+        int Id PK
+        int SupplierId FK
+        nvarchar Status
+        int CreatedByActorId FK
+        int ReviewedByUserId FK
+        int CancelledByUserId FK
+        int ReplacesRequestId FK
+        rowversion RowVersion
+    }
+
+    ReplenishmentRequestDetails {
+        int Id PK
+        int ReplenishmentRequestId FK
+        int ProductSupplierId FK
+        int EstimatedNeedQuantity
+        int ProposedQuantity
+        decimal EstimatedUnitCost
+        int LeadTimeDaysSnapshot
+        int MinimumOrderQuantitySnapshot
+    }
+```
+
+### Restricciones adicionales
+
+- Cada solicitud pertenece a un proveedor y contiene al menos un detalle.
+- El proveedor de cada ProductSupplierId debe coincidir con el
+  SupplierId de la cabecera.
+- ReplenishmentRequestId + ProductSupplierId es una combinación única.
+- CreatedByActorId permite identificar a un creador humano o agente.
+- ReviewedByUserId y CancelledByUserId referencian Users.Id.
+- ReplacesRequestId referencia una solicitud anterior de la misma tabla.
+- Las relaciones de revisión, cancelación y reemplazo no se dibujan
+  para simplificar esta vista.
+- Las condiciones copiadas en el detalle conservan lo presentado
+  al gerente, aunque cambie el catálogo.
+- Los campos completos se describen en el diccionario de datos.
 ```
 
 
